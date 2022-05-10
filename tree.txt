@@ -1,0 +1,15 @@
+.
+├── data
+│   └── ogbn_arxiv
+├── error.log
+├── .gitignore
+├── output.log
+├── README.md
+├── src
+│   ├── main.py
+│   ├── model
+│   ├── scripts
+│   └── utils
+└── tree.txt
+
+6 directories, 6 files
