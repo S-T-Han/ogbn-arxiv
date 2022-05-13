@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import dgl
-from data import Arxiv
+from model.data import Arxiv
 
 
 class MultiLayersGCN(nn.Module):
