@@ -12,7 +12,8 @@ class Arxiv:
                     'data'))
         dataset = DglNodePropPredDataset(name='ogbn-arxiv', root=self.data_path)
         self.g, self.labels = dataset[0]
-        self.g = dgl.add_self_loop(self.g)
+        self.g.add_edges(*self.g.all_edges()[::-1])
+        self.g.remove_self_loop().add_self_loop()
         self.idx = dataset.get_idx_split()
 
 
