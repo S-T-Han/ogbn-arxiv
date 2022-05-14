@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/home/sthan/Codefield/python/ds_practice/paper_classification/src/main.py", line 75, in <module>
+    loss = train_graph(model, loss_fn, optimizer, arxiv.g, arxiv.labels, arxiv.idx['train'], device)
+  File "/home/sthan/Codefield/python/ds_practice/paper_classification/src/main.py", line 48, in train_graph
+    loss = loss_fn(pred[train_pred_idx], labels[train_pred_idx])
+  File "/home/sthan/.conda/envs/graph_learning/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1102, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/sthan/.conda/envs/graph_learning/lib/python3.9/site-packages/torch/nn/modules/loss.py", line 1150, in forward
+    return F.cross_entropy(input, target, weight=self.weight,
+  File "/home/sthan/.conda/envs/graph_learning/lib/python3.9/site-packages/torch/nn/functional.py", line 2846, in cross_entropy
+    return torch._C._nn.cross_entropy_loss(input, target, weight, _Reduction.get_enum(reduction), ignore_index, label_smoothing)
+RuntimeError: 0D or 1D target tensor expected, multi-target not supported
