@@ -6,6 +6,7 @@ import torch
 import dgl
 from dgl.dataloading import NeighborSampler, MultiLayerFullNeighborSampler, NodeDataLoader
 from ogb.nodeproppred import Evaluator
+from tqdm import tqdm
 
 from model.data import Arxiv
 from model.TwoLayersGCN import TwoLayersGCN
@@ -32,24 +33,61 @@ def train_blocks(model, loss_fn, optimizer, dataloader, labels, device):
             print(loss.item())
 
 
-def train_graph(model, loss_fn, optimizer, graph, labels, train_idx, device):
+def train_graph(model, loss_fn, optimizer, graph, labels, train_idx):
     assert isinstance(model, torch.nn.Module)
     model.train()
 
-    graph, labels = graph.to(device), labels.flatten().to(device)
-    feat = graph.ndata['feat'].to(device)
+    feat = graph.ndata['feat']
     mask = torch.rand(train_idx.shape) < 0.5
     train_pred_idx = train_idx[mask]
 
     optimizer.zero_grad()
     pred = model(graph, feat)
-    loss = loss_fn(pred[train_pred_idx], labels[train_pred_idx])
+    loss = loss_fn(pred[train_pred_idx], labels[train_pred_idx].flatten())
     loss.backward()
     optimizer.step()
 
-    print(loss.item())
-
     return loss
+
+
+@torch.no_grad()
+def eval_graph(model, evaluator, graph, labels, valid_idx, test_idx):
+    assert isinstance(model, torch.nn.Module)
+    assert isinstance(evaluator, Evaluator)
+    model.eval()
+
+    feat = graph.ndata['feat']
+    pred = model(graph, feat)
+    eval_acc = evaluator.eval({
+        'y_pred': pred[valid_idx].argmax(dim=-1, keepdim=True),
+        'y_true': labels[valid_idx]})['acc']
+    test_acc = evaluator.eval({
+        'y_pred': pred[test_idx].argmax(dim=-1, keepdim=True),
+        'y_true': labels[test_idx]})['acc']
+
+    return eval_acc, test_acc
+
+
+def run_graph(
+        model, loss_fn, optimizer, lr_scheduler, evaluator,
+        graph, labels,
+        train_idx, valid_idx, test_idx,
+        epochs, device):
+    assert isinstance(model, torch.nn.Module)
+    model = model.to(device)
+    graph, labels = graph.to(device), labels.to(device)
+
+    max_eval_acc, final_test_acc = 0, 0
+    for i in tqdm(range(0, epochs)):
+        loss = train_graph(model, loss_fn, optimizer, graph, labels, train_idx)
+        lr_scheduler.step(loss)
+        eval_acc, test_acc = eval_graph(model, evaluator, graph, labels, valid_idx, test_idx)
+        if eval_acc > max_eval_acc:
+            max_eval_acc, final_test_acc = eval_acc, test_acc
+            print('max eval acc: {}'.format(eval_acc))
+            print('test acc: {}'.format(test_acc))
+
+    print(max_eval_acc, final_test_acc)
 
 
 if __name__ == "__main__":
@@ -68,9 +106,11 @@ if __name__ == "__main__":
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, 
             mode='min', factor=0.5, patience=100, verbose=True, min_lr=1e-3)
+    evaluator = Evaluator(name='ogbn-arxiv')
 
-    for _ in range(0, 500):
-        loss = train_graph(model, loss_fn, optimizer, arxiv.g, arxiv.labels, arxiv.idx['train'], device)
-        lr_scheduler.step(loss)
-
+    run_graph(
+            model, loss_fn, optimizer, lr_scheduler, evaluator, 
+            arxiv.g, arxiv.labels,
+            arxiv.idx['train'], arxiv.idx['valid'], arxiv.idx['test'], 
+            epochs=3000, device=device)
 
