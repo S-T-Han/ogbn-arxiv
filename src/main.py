@@ -12,6 +12,7 @@ from model.data import Arxiv
 from model.TwoLayersGCN import TwoLayersGCN
 from model.TwoLayersSAGE import TwoLayersSAGE
 from model.MultiLayersGCN import MultiLayersGCN
+from model.MultiLayersGAT import MultiLayersGAT
 
 
 def train_blocks(model, loss_fn, optimizer, dataloader, labels, device):
@@ -95,10 +96,14 @@ if __name__ == "__main__":
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('trianing on {}'.format('cuda' if torch.cuda.is_available() else 'cpu'))
-
+    '''
     model = MultiLayersGCN(
             arxiv.g.ndata['feat'].shape[-1], [256, 256], 40, 
             dropout=0.4, use_linear=True)
+    '''
+    model = MultiLayersGAT(
+            arxiv.g.ndata['feat'].shape[-1], [256, 256], [3, 3], 40, 
+            input_dropout=0.2, dropout_list=[0.3, 0.3, 0.3])
     model = model.to(device)
 
     loss_fn = torch.nn.CrossEntropyLoss()
